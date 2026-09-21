@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Softwear - High Precision Product Listing Generator</title>
+    <!-- Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tesseract.js for visual text extraction (OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(18, 26, 43, 0.82);
+            --card-border: rgba(0, 168, 255, 0.25);
+            --primary: #00a8ff;
+            --primary-glow: rgba(0, 168, 255, 0.45);
+            --accent: #00d2d3;
+            --text-main: #f0f4f8;
+            --text-muted: #8a99ad;
+            --success: #10b981;
+            --header-green: #10b981;
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(0, 168, 255, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(0, 210, 211, 0.07) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 16px 40px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* LOGIN SCREEN STYLES (MODERN GLASSMORPHISM + ANIMATION) */
+        #login-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a;
+            background-image: radial-gradient(at 0% 0%, #1e293b 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, #0f172a 0px, transparent 50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .login-container-fade-out {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        .login-box {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(12px);
+            text-align: left;
+            animation: loginSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes loginSlideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .login-box h2 {
+            margin-top: 0;
+            color: #f8fafc;
+            font-family: 'Inter', 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: normal;
+        }
+        .login-subtitle {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 24px;
+            font-family: 'Inter', sans-serif;
+        }
+        .login-box .input-group-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-family: 'Inter', sans-serif;
+        }
+        .login-box input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        .login-box input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+        .login-box button {
+            width: 100%;
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        .login-box button:hover {
+            background: #7dd3fc;
+            transform: none;
+            box-shadow: none;
+        }
+        #error-msg {
+            color: var(--danger);
+            font-size: 0.82rem;
+            margin-top: 12px;
+            display: none;
+        }
+
+        /* MAIN APP CONTAINER */
+        #main-app-container {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .main-app-fade-in {
+            opacity: 1 !important;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .api-buttons-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .api-config-btn {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            width: 100%;
+            max-width: 300px;
+        }
+        .api-config-btn:hover {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 0 15px var(--danger-glow);
+        }
+
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            box-shadow: 0 0 25px var(--primary-glow);
+            margin-bottom: 12px;
+            animation: pulse 4s infinite alternate;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            background: #ffffff;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 15px var(--primary-glow); }
+            100% { box-shadow: 0 0 30px rgba(0, 210, 211, 0.6); }
+        }
+
+        .brand-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #ffffff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .workspace {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 850px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title i { color: var(--primary); }
+
+        .input-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: block;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="number"], input[type="password"], textarea, select {
+            width: 100%;
+            background: rgba(10, 15, 26, 0.85);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        input#productUrl {
+            color: var(--accent);
+            font-weight: 500;
+            word-break: break-all;
+            direction: ltr;
+            text-align: left;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+            line-height: 1.4;
+        }
+
+        select { cursor: pointer; }
+        select option { background: #0b0f19; color: #fff; }
+        input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        .image-dropzone {
+            border: 2px dashed var(--card-border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            text-align: center;
+            background: rgba(10, 15, 26, 0.5);
+            cursor: pointer;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-height: 50px;
+        }
+
+        .image-dropzone:hover {
+            border-color: var(--primary);
+            background: rgba(0, 168, 255, 0.05);
+        }
+
+        .image-dropzone img {
+            width: 32px;
+            height: 32px;
+            object-fit: cover;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .image-dropzone-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .resize-section {
+            margin-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+
+        .resize-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: rgba(10, 15, 26, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .resize-upload-box {
+            border: 2px dashed var(--card-border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 110px;
+            background: rgba(10, 15, 26, 0.4);
+            transition: all 0.2s;
+        }
+
+        .resize-upload-box:hover {
+            border-color: var(--primary);
+        }
+
+        .resize-upload-box img {
+            max-width: 100%;
+            max-height: 70px;
+            border-radius: 4px;
+            display: none;
+            margin-top: 4px;
+        }
+
+        .resize-controls {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .resize-inputs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .resize-inputs-grid input {
+            margin-bottom: 0;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+        }
+
+        .enhance-toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .enhance-toggle-group input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0088cc, var(--primary));
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, var(--success));
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .output-box {
+            background: rgba(7, 10, 18, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 18px;
+            font-family: 'Cairo', 'Consolas', monospace;
+            font-size: 0.92rem;
+            line-height: 1.7;
+            color: #d1d5db;
+            white-space: pre-wrap;
+            word-break: break-word;
+            flex-grow: 1;
+            min-height: 250px;
+            max-height: 420px;
+            overflow-y: auto;
+            text-align: left;
+            direction: ltr;
+        }
+
+        .output-box.rtl-output {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .output-box .green-header {
+            color: var(--header-green);
+            font-weight: 700;
+            font-size: 1.05rem;
+            display: block;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            border-bottom: 1px dashed rgba(16, 185, 129, 0.3);
+            padding-bottom: 2px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            box-shadow: 0 0 10px var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .live-preview-modal {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(18, 26, 43, 0.96);
+            border: 1px solid var(--primary);
+            border-radius: 14px;
+            width: 320px;
+            padding: 16px;
+            box-shadow: 0 10px 35px rgba(0, 168, 255, 0.35);
+            backdrop-filter: blur(12px);
+            display: none;
+            flex-direction: column;
+            z-index: 4000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .live-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .live-preview-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .live-preview-close:hover { color: #fff; }
+
+        .live-preview-screen {
+            width: 100%;
+            height: 160px;
+            background: #050811;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .live-preview-screen canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .live-preview-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: rgba(10, 15, 26, 0.6);
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .live-preview-stats span strong {
+            color: var(--accent);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .modal-content {
+            background: #121a2b;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            width: 90%; max-width: 650px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .modal-close:hover { color: #fff; }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            overflow-y: auto;
+            max-height: 50vh;
+            padding: 4px;
+        }
+        .modal-image-card {
+            background: rgba(10, 15, 26, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px;
+        }
+        .modal-image-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+        .modal-image-card img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .modal-image-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .api-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 280px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            padding-right: 4px;
+        }
+        .api-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(10, 15, 26, 0.7);
+            border: 1px solid var(--card-border);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            gap: 10px;
+        }
+        .api-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow: hidden;
+            flex: 1;
+        }
+        .api-item-text {
+            font-family: monospace;
+            color: var(--accent);
+            word-break: break-all;
+            font-size: 0.85rem;
+        }
+        .api-meta-row {
+            display: flex;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            align-items: center;
+        }
+        .api-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .api-status-badge.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .api-delete-btn {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .api-delete-btn:hover { background: #ef4444; color: #fff; }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 6000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 168, 255, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 168, 255, 0.6); }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-container">
+        <div class="login-box">
+            <h2>Sign In</h2>
+            <p class="login-subtitle">Access your Wolf Softwear workspace</p>
+            <label class="input-group-label" for="usernameInput">Username</label>
+            <input type="text" id="usernameInput" placeholder="Enter username..." autocomplete="off" onkeypress="handleLoginKeyPress(event)">
+            <label class="input-group-label" for="passwordInput">Password</label>
+            <input type="password" id="passwordInput" placeholder="••••••••" onkeypress="handleLoginKeyPress(event)">
+            <button onclick="checkLogin()">Sign In</button>
+            <p id="error-msg">Incorrect credentials. Please try again.</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="main-app-container">
+
+        <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span id="toastMsg">Copied!</span></div>
+
+        <!-- LIVE ENHANCEMENT MINI-WINDOW -->
+        <div id="livePreviewModal" class="live-preview-modal">
+            <div class="live-preview-header">
+                <span><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent);"></i> Live Quality Monitor</span>
+                <button class="live-preview-close" onclick="closeLivePreviewModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="live-preview-screen" id="livePreviewScreenContainer"></div>
+            <div class="live-preview-stats">
+                <span>Resolution: <strong id="lpRes">0x0</strong></span>
+                <span>Status: <strong id="lpStatus" style="color: var(--success);">Optimized</strong></span>
+            </div>
+        </div>
+
+        <!-- MODAL GOOGLE SEARCH IMAGES -->
+        <div id="imageModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title"><i class="fa-solid fa-images"></i> Matching Images from Google Search</span>
+                    <button class="modal-close" onclick="closeImageModal()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="modalImageGrid" class="modal-grid"></div>
+            </div>
+        </div>
+
+        <!-- MODAL PIN CODE FOR API KEYS -->
+        <div id="apiPinModal" class="modal-overlay">
+            <div class="login-box" style="max-width: 350px; text-align: center;">
+                <h2>Security Code</h2>
+                <p class="login-subtitle">Enter access code to manage API keys</p>
+                <input type="password" id="apiPinInput" placeholder="Enter code..." onkeypress="handlePinKeyPress(event)" style="text-align: center; letter-spacing: 2px;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" style="flex: 1; padding: 12px;" onclick="closeApiPinModal()">Cancel</button>
+                    <button class="btn" style="flex: 1; padding: 12px; background: var(--danger);" onclick="verifyApiPin()">Verify</button>
+                </div>
+                <p id="pin-error-msg" style="color: var(--danger); font-size: 0.82rem; margin-top: 10px; display: none;">Incorrect code.</p>
+            </div>
+        </div>
+
+        <!-- MODAL API KEYS MANAGER (DEEPSEEK) -->
+        <div id="apiKeyModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title"><i class="fa-solid fa-key" style="color: var(--danger);"></i> Manage OpenRouter / DeepSeek API Keys</span>
+                    <button class="modal-close" onclick="closeApiKeyModal()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <label class="input-label">Saved API Keys in memory with auto-failover status:</label>
+                <div id="apiKeysListContainer" class="api-list"></div>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; margin-top: 4px;">
+                    <label class="input-label" for="newApiKeyInput">Add a new DeepSeek API Key:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newApiKeyInput" placeholder="sk-or-v1-..." style="margin-bottom: 0;">
+                        <button class="btn btn-success" style="padding: 10px 18px; white-space: nowrap;" onclick="addNewApiKey()"><i class="fa-solid fa-plus"></i> Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <audio id="completionSound" preload="auto" src="Wolf Howling Sound Effect (HD)  How to.mp3"></audio>
+
+        <header>
+            <div style="position: absolute; top: 0; right: 0;">
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+            <div class="logo-container">
+                <img src="9587b70f-8e78-4788-9f73-eed0646023e7.png" alt="Wolf Logo" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%230b0f19\' stroke=\'%2300a8ff\' stroke-width=\'3\'/><polygon points=\'30,35 50,75 70,35 50,45\' fill=\'%2300a8ff\'/></svg>';">
+            </div>
+            <h1 class="brand-title">WOLF SOFTWEAR</h1>
+            <p class="brand-subtitle">BY SHELIOS</p>
+        </header>
+
+        <main class="workspace">
+            <!-- PANEL 1 : INPUTS & PLAYGROUND -->
+            <section class="panel">
+                <div class="panel-header">
+                    <span class="panel-title"><i class="fa-solid fa-box-open"></i> Product Input</span>
+                    <button class="btn btn-secondary" onclick="clearInput()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                </div>
+                
+                <div class="api-buttons-wrapper">
+                    <button class="api-config-btn" onclick="openApiPinModal()">
+                        <i class="fa-solid fa-key"></i> DeepSeek API Keys
+                    </button>
+                </div>
+
+                <label class="input-label">OCR Image + SERP Search</label>
+                <div class="image-dropzone" onclick="document.getElementById('imageInput').click()">
+                    <img id="imagePreview" alt="Preview">
+                    <div class="image-dropzone-content">
+                        <i class="fa-solid fa-camera" style="font-size: 1rem; color: var(--primary);"></i>
+                        <span id="dropzoneText" style="font-size: 0.78rem; color: var(--text-muted);">Upload image for OCR & Search</span>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleShifterReverseImageSearch(event)">
+                </div>
+
+                <label class="input-label" for="productInput">Product Name</label>
+                <input type="text" id="productInput" placeholder="Enter product name..." onkeypress="handleProductKeyPress(event)" autofocus>
+                
+                <label class="input-label" for="productUrl">Product URL</label>
+                <input type="text" id="productUrl" placeholder="https://..." onchange="handleUrlChange()" onkeypress="handleProductKeyPress(event)">
+
+                <label class="input-label" for="productContent">Filtered Web Content by DeepSeek</label>
+                <textarea id="productContent" placeholder="Cleaned and filtered text will appear here..."></textarea>
+
+                <button class="btn" onclick="generateWithDeepSeek()"><i class="fa-solid fa-bolt"></i> Generate Listing via DeepSeek</button>
+                
+                <div class="resize-section" style="margin-top: 20px;">
+                    <label class="input-label"><i class="fa-solid fa-terminal" style="color: var(--accent);"></i> DeepSeek Custom Playground (Free Prompt - Priority)</label>
+                    <textarea id="customPromptInput" placeholder="Write any instruction or prompt here... It will be executed with top priority and reset afterwards."></textarea>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
+                        <label class="enhance-toggle-group" style="margin-bottom:0;">
+                            <input type="checkbox" id="includeFilteredContentCheck" checked>
+                            <span>Include filtered content above as context</span>
+                        </label>
+                        <button class="btn btn-success" style="padding: 8px 16px; font-size: 0.85rem; margin-left: auto;" onclick="runCustomPrompt()"><i class="fa-solid fa-paper-plane"></i> Execute Prompt</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; font-size: 0.8rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-volume-high"></i> Wolf sound enabled. (Press Enter on inputs to generate listing)
+                </div>
+            </section>
+
+            <!-- PANEL 2 : STRUCTURED & CUSTOM OUTPUT -->
+            <section class="panel">
+                <div class="panel-header">
+                    <span class="panel-title"><i class="fa-solid fa-file-code"></i> Structured / Custom Output</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="targetLanguage" onchange="handleLanguageChange()" style="padding: 6px 10px; margin-bottom: 0; font-size: 0.85rem; width: auto;">
+                            <option value="English" selected>English (EN)</option>
+                            <option value="Arabic">Arabic (AR)</option>
+                            <option value="French">French (FR)</option>
+                            <option value="Spanish">Spanish (ES)</option>
+                            <option value="German">German (DE)</option>
+                            <option value="Italian">Italian (IT)</option>
+                            <option value="Portuguese">Portuguese (PT)</option>
+                        </select>
+                        <button class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem;" onclick="translateWithSelectedAI()"><i class="fa-solid fa-language"></i> Translate</button>
+                    </div>
+                </div>
+                
+                <div id="outputBox" class="output-box">Product template or custom prompt response will appear here...</div>
+
+                <div id="progressContainer" class="progress-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-success" style="flex: 1;" onclick="copyOutput()"><i class="fa-solid fa-copy"></i> Copy Output</button>
+                </div>
+
+                <div class="resize-section" style="margin-top: 15px;">
+                    <label class="input-label"><i class="fa-solid fa-crop"></i> Photo Resizer Editor</label>
+                    <div class="resize-container">
+                        <div class="resize-upload-box" onclick="document.getElementById('resizeImageInput').click()">
+                            <i class="fa-solid fa-image" style="font-size: 1.2rem; color: var(--primary);"></i>
+                            <span id="resizeDropText" style="font-size: 0.75rem; color: var(--text-muted);">Insert Photo</span>
+                            <img id="resizeImagePreview" alt="Resize Preview">
+                            <input type="file" id="resizeImageInput" accept="image/*" style="display: none;" onchange="handleResizeImageSelect(event)">
+                        </div>
+                        <div class="resize-controls">
+                            <div class="resize-inputs-grid">
+                                <input type="number" id="resizeWidth" placeholder="Width (px)" oninput="updateAspectRatio(); updateLivePreviewRealtime();" value="1000">
+                                <input type="number" id="resizeHeight" placeholder="Height (px)" oninput="updateAspectRatio(true); updateLivePreviewRealtime();" value="1000">
+                            </div>
+                            <label class="enhance-toggle-group">
+                                <input type="checkbox" id="enhanceQualityCheck" checked onchange="updateLivePreviewRealtime()">
+                                <span><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent);"></i> Enhance Quality (1000x1000)</span>
+                            </label>
+                            <button class="btn btn-success" style="padding: 8px; font-size: 0.8rem;" onclick="processImageResize()"><i class="fa-solid fa-download"></i> Resize & Download</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script>
+        function handleLoginKeyPress(event) {
+            if (event.key === 'Enter') {
+                checkLogin();
+            }
+        }
+
+        function checkLogin() {
+            const userInput = document.getElementById('usernameInput');
+            const passInput = document.getElementById('passwordInput');
+            const user = userInput ? userInput.value.trim() : '';
+            const pass = passInput ? passInput.value.trim() : '';
+            const errorMsg = document.getElementById('error-msg');
+
+            if (user === 'shell' && pass === 'wtf1172') {
+                const loginContainer = document.getElementById('login-container');
+                const mainAppContainer = document.getElementById('main-app-container');
+                
+                if (loginContainer) {
+                    loginContainer.classList.add('login-container-fade-out');
+                }
+                
+                if (mainAppContainer) {
+                    mainAppContainer.style.display = 'flex';
+                    setTimeout(() => {
+                        mainAppContainer.classList.add('main-app-fade-in');
+                    }, 50);
+                }
+
+                setTimeout(() => {
+                    if (loginContainer) loginContainer.style.display = 'none';
+                }, 600);
+                
+                const productInput = document.getElementById('productInput');
+                if (productInput) productInput.focus();
+            } else {
+                if (errorMsg) errorMsg.style.display = 'block';
+            }
+        }
+
+        function logout() {
+            const userInput = document.getElementById('usernameInput');
+            const passInput = document.getElementById('passwordInput');
+            if (userInput) userInput.value = '';
+            if (passInput) passInput.value = '';
+            
+            const errorMsg = document.getElementById('error-msg');
+            if (errorMsg) errorMsg.style.display = 'none';
+            
+            const mainAppContainer = document.getElementById('main-app-container');
+            const loginContainer = document.getElementById('login-container');
+            
+            if (mainAppContainer) {
+                mainAppContainer.classList.remove('main-app-fade-in');
+                mainAppContainer.style.display = 'none';
+            }
+            if (loginContainer) {
+                loginContainer.style.display = 'flex';
+                loginContainer.classList.remove('login-container-fade-out');
+            }
+            if (userInput) userInput.focus();
+        }
+
+        let DEFAULT_API_KEYS = [
+            { key: "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", date: "2026-08-01 12:00", active: true },
+            { key: "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", date: "2026-08-15 14:30", active: true },
+            { key: "sk-0e6640253eb84ebbaf2e60a1ae7a178c", date: "2026-08-25 09:15", active: true }
+        ];
+
+        function getStoredApiKeys() {
+            const saved = localStorage.getItem('wolf_custom_api_keys_detailed');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+                        return parsed.map(k => ({ key: k, date: new Date().toISOString().slice(0, 16).replace('T', ' '), active: true }));
+                    }
+                    return parsed;
+                } catch(e) {
+                    return DEFAULT_API_KEYS;
+                }
+            }
+            return DEFAULT_API_KEYS;
+        }
+
+        function saveApiKeys(keysArray) {
+            localStorage.setItem('wolf_custom_api_keys_detailed', JSON.stringify(keysArray));
+        }
+
+        function openApiPinModal() {
+            document.getElementById('apiPinInput').value = '';
+            document.getElementById('pin-error-msg').style.display = 'none';
+            document.getElementById('apiPinModal').style.display = 'flex';
+            document.getElementById('apiPinInput').focus();
+        }
+
+        function closeApiPinModal() {
+            document.getElementById('apiPinModal').style.display = 'none';
+        }
+
+        function handlePinKeyPress(event) {
+            if (event.key === 'Enter') {
+                verifyApiPin();
+            }
+        }
+
+        function verifyApiPin() {
+            const pinInput = document.getElementById('apiPinInput').value.trim();
+            const pinError = document.getElementById('pin-error-msg');
+
+            if (pinInput === 'toor') {
+                closeApiPinModal();
+                renderApiKeysList();
+                document.getElementById('apiKeyModal').style.display = 'flex';
+            } else {
+                pinError.style.display = 'block';
+            }
+        }
+
+        function openApiKeyModal() {
+            renderApiKeysList();
+            document.getElementById('apiKeyModal').style.display = 'flex';
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('apiKeyModal').style.display = 'none';
+        }
+
+        function renderApiKeysList() {
+            const container = document.getElementById('apiKeysListContainer');
+            const keys = getStoredApiKeys();
+            container.innerHTML = '';
+
+            if (keys.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); text-align: center; font-size: 0.85rem; padding: 10px;">No API keys saved.</div>';
+                return;
+            }
+
+            keys.forEach((itemObj, index) => {
+                const item = document.createElement('div');
+                item.className = 'api-item';
+                
+                const fullKey = itemObj.key || itemObj;
+                const maskedKey = fullKey.length > 12 ? fullKey.substring(0, 8) + '...' + fullKey.substring(fullKey.length - 4) : fullKey;
+                const dateAdded = itemObj.date || "Unknown date";
+
+                item.innerHTML = `
+                    <div class="api-item-info">
+                        <span class="api-item-text"><i class="fa-solid fa-key" style="font-size: 0.75rem; color: var(--danger); margin-right: 4px;"></i> ${maskedKey}</span>
+                        <div class="api-meta-row">
+                            <span><i class="fa-regular fa-calendar" style="margin-right: 3px;"></i> Added: ${dateAdded}</span>
+                            <span class="api-status-badge active"><i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Active</span>
+                        </div>
+                    </div>
+                    <button class="api-delete-btn" onclick="removeApiKey(${index})"><i class="fa-solid fa-trash"></i> Delete</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function addNewApiKey() {
+            const input = document.getElementById('newApiKeyInput');
+            const val = input.value.trim();
+            if (!val) {
+                showToast("Please enter a valid API key!");
+                return;
+            }
+
+            let keys = getStoredApiKeys();
+            if (keys.some(k => (k.key || k) === val)) {
+                showToast("This key already exists in memory!");
+                return;
+            }
+
+            const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            keys.push({
+                key: val,
+                date: nowStr,
+                active: true
+            });
+
+            saveApiKeys(keys);
+            input.value = '';
+            renderApiKeysList();
+            showToast("DeepSeek API key saved in memory!");
+        }
+
+        function removeApiKey(index) {
+            let keys = getStoredApiKeys();
+            keys.splice(index, 1);
+            saveApiKeys(keys);
+            renderApiKeysList();
+            showToast("API key removed from memory.");
+        }
+
+        let translationsCache = {};
+        let currentAbortController = null;
+        let originalResizeImage = null;
+        let originalImageAspectRatio = 1;
+
+        function handleResizeImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    originalResizeImage = img;
+                    originalImageAspectRatio = img.width / img.height;
+                    
+                    document.getElementById('resizeWidth').value = 1000;
+                    document.getElementById('resizeHeight').value = 1000;
+
+                    const preview = document.getElementById('resizeImagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('resizeDropText').style.display = 'none';
+
+                    showLivePreviewModal();
+                    updateLivePreviewRealtime();
+
+                    showToast("Photo loaded & optimized for Snoonu (1000x1000)!");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showLivePreviewModal() {
+            document.getElementById('livePreviewModal').style.display = 'flex';
+        }
+
+        function closeLivePreviewModal() {
+            document.getElementById('livePreviewModal').style.display = 'none';
+        }
+
+        function updateLivePreviewRealtime() {
+            if (!originalResizeImage) return;
+
+            const targetWidth = parseInt(document.getElementById('resizeWidth').value) || 1000;
+            const targetHeight = parseInt(document.getElementById('resizeHeight').value) || 1000;
+            const isEnhanceChecked = document.getElementById('enhanceQualityCheck').checked;
+
+            const container = document.getElementById('livePreviewScreenContainer');
+            container.innerHTML = '';
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+            let hRatio = targetWidth / originalResizeImage.width;
+            let vRatio = targetHeight / originalResizeImage.height;
+            let ratio = Math.min(hRatio, vRatio);
+            let centerShiftX = (targetWidth - originalResizeImage.width * ratio) / 2;
+            let centerShiftY = (targetHeight - originalResizeImage.height * ratio) / 2;
+
+            if (isEnhanceChecked) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.filter = 'contrast(1.05) saturate(1.03)';
+            } else {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'medium';
+            }
+
+            ctx.drawImage(originalResizeImage, 0, 0, originalResizeImage.width, originalResizeImage.height, centerShiftX, centerShiftY, originalResizeImage.width * ratio, originalResizeImage.height * ratio);
+
+            container.appendChild(canvas);
+            document.getElementById('lpRes').textContent = `${targetWidth} x ${targetHeight}px`;
+            document.getElementById('lpStatus').textContent = isEnhanceChecked ? "White BG + HD" : "Standard";
+        }
+
+        function updateAspectRatio(isHeightChanged = false) {
+            if (!originalResizeImage) return;
+            const widthInput = document.getElementById('resizeWidth');
+            const heightInput = document.getElementById('resizeHeight');
+
+            if (isHeightChanged && heightInput.value) {
+                const h = parseFloat(heightInput.value);
+                if (!isNaN(h)) {
+                    widthInput.value = Math.round(h * originalImageAspectRatio);
+                }
+            } else if (!isHeightChanged && widthInput.value) {
+                const w = parseFloat(widthInput.value);
+                if (!isNaN(w)) {
+                    heightInput.value = Math.round(w / originalImageAspectRatio);
+                }
+            }
+        }
+
+        function processImageResize() {
+            if (!originalResizeImage) {
+                showToast("Please insert a photo first!");
+                return;
+            }
+
+            const targetWidth = parseInt(document.getElementById('resizeWidth').value) || 1000;
+            const targetHeight = parseInt(document.getElementById('resizeHeight').value) || 1000;
+            const isEnhanceChecked = document.getElementById('enhanceQualityCheck').checked;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+            let hRatio = targetWidth / originalResizeImage.width;
+            let vRatio = targetHeight / originalResizeImage.height;
+            let ratio = Math.min(hRatio, vRatio);
+            let centerShiftX = (targetWidth - originalResizeImage.width * ratio) / 2;
+            let centerShiftY = (targetHeight - originalResizeImage.height * ratio) / 2;
+
+            if (isEnhanceChecked) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.filter = 'contrast(1.05) saturate(1.03)';
+            } else {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'medium';
+            }
+
+            ctx.drawImage(originalResizeImage, 0, 0, originalResizeImage.width, originalResizeImage.height, centerShiftX, centerShiftY, originalResizeImage.width * ratio, originalResizeImage.height * ratio);
+
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `snoonu-product-${targetWidth}x${targetHeight}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast("Image format 1000x1000 (Snoonu ready) downloaded successfully!");
+            }, 'image/png');
+        }
+
+        async function extractExactProductNameWithDeepSeek(rawOcrText, fallbackTitle) {
+            const systemPrompt = `You are an e-commerce expert specialized in preparing listings for platforms like Snoonu. Accurately identify the exact product name, brand, and model. Return ONLY the product name.`;
+
+            const promptText = `Extracted OCR Text:
+"""
+${rawOcrText}
+"""
+Fallback title: "${fallbackTitle || ''}"
+
+Format the precise product name (Brand + Model).`;
+
+            try {
+                const title = await fetchAIResponse(promptText, systemPrompt);
+                return title.trim().replace(/^["']|["']$/g, '');
+            } catch (e) {
+                console.log("Error extracting name via DeepSeek:", e);
+            }
+            return fallbackTitle || "";
+        }
+
+        async function filterAndAnalyzeWithDeepSeek(rawWebText, rawTitleFromSerp) {
+            const systemPrompt = `You are an e-commerce AI analyst. Your role is to filter webpage content to keep only actual product features and specifications. Answer in strict JSON format: {"exact_title": "Title", "filtered_content": "Data"}`;
+
+            const promptText = `Webpage text:
+"""
+${rawWebText.substring(0, 4000)}
+"""
+Suggested Name: "${rawTitleFromSerp || ''}"
+
+Extract the precise title and clean the text to remove unnecessary content.`;
+
+            try {
+                const aiResult = await fetchAIResponse(promptText, systemPrompt);
+                const jsonMatch = aiResult.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+            } catch (e) {
+                console.log("Error filtering via DeepSeek:", e);
+            }
+            return { exact_title: rawTitleFromSerp, filtered_content: rawWebText };
+        }
+
+        async function handleShifterReverseImageSearch(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+            currentAbortController = new AbortController();
+
+            document.getElementById('productContent').value = "Loading text...";
+            document.getElementById('productInput').value = "";
+            document.getElementById('productUrl').value = "";
+
+            const preview = document.getElementById('imagePreview');
+            const dropzoneText = document.getElementById('dropzoneText');
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            dropzoneText.textContent = file.name;
+
+            showToast("Reading text from image (OCR)...");
+            startProgressBar();
+
+            try {
+                let textOnImage = "";
+                try {
+                    const worker = await Tesseract.createWorker('eng');
+                    const ret = await worker.recognize(file);
+                    await worker.terminate();
+                    textOnImage = ret.data.text.replace(/\s+/g, ' ').trim();
+                } catch (e) {
+                    console.log("OCR Error:", e);
+                }
+
+                let detectedProductName = "";
+                if (textOnImage) {
+                    detectedProductName = await extractExactProductNameWithDeepSeek(textOnImage, "");
+                    if (detectedProductName) {
+                        document.getElementById('productInput').value = detectedProductName;
+                    }
+                }
+
+                if (textOnImage) {
+                    document.getElementById('productContent').value = textOnImage;
+                } else {
+                    document.getElementById('productContent').value = "";
+                }
+
+                showToast("Ready! Press Enter or click Generate.");
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("Processing error:", err);
+                    showToast("An error occurred during processing.");
+                }
+            } finally {
+                finishProgressBar();
+            }
+        }
+
+        function handleUrlChange() {
+            const url = document.getElementById('productUrl').value.trim();
+            const nameInput = document.getElementById('productInput');
+            
+            if (url && !nameInput.value.trim()) {
+                try {
+                    const parsedUrl = new URL(url);
+                    const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+                    if (pathSegments.length > 0) {
+                        let slug = pathSegments[pathSegments.length - 1];
+                        slug = slug.replace(/\.(html|php|asp|aspx)$/i, '');
+                        let extractedName = slug.replace(/[-_]/g, ' ');
+                        extractedName = extractedName.replace(/\b\w/g, l => l.toUpperCase());
+                        if (extractedName) {
+                            nameInput.value = extractedName;
+                            showToast("Name extracted from URL!");
+                        }
+                    }
+                } catch (e) {
+                    console.log("Invalid URL for extraction");
+                }
+            }
+        }
+
+        async function fetchWebpageContent(url) {
+            const proxies = [
+                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
+
+            for (const proxyUrl of proxies) {
+                try {
+                    const response = await fetch(proxyUrl);
+                    if (response.ok) {
+                        let htmlText = "";
+                        if (proxyUrl.includes('allorigins')) {
+                            const data = await response.json();
+                            htmlText = data.contents;
+                        } else {
+                            htmlText = await response.text();
+                        }
+
+                        if (htmlText) {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(htmlText, 'text/html');
+                            
+                            const elementsToRemove = doc.querySelectorAll('script, style, nav, footer, iframe, header');
+                            elementsToRemove.forEach(el => el.remove());
+
+                            let extractedText = doc.body.innerText || doc.body.textContent || "";
+                            extractedText = extractedText.replace(/\s+/g, ' ').trim();
+                            
+                            if (extractedText.length > 100) {
+                                return extractedText.substring(0, 4000);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.log("Proxy error:", err);
+                }
+            }
+            return null;
+        }
+
+        async function autoPasteClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim().length > 0) {
+                    document.getElementById('productContent').value = text;
+                    showToast("Clipboard text pasted!");
+                    return true;
+                }
+            } catch (err) {
+                console.log("Clipboard inaccessible:", err);
+            }
+            return false;
+        }
+
+        function handleLanguageChange() {
+            const targetLang = document.getElementById('targetLanguage').value;
+            const outputBox = document.getElementById('outputBox');
+            
+            if (targetLang === 'Arabic') {
+                outputBox.classList.add('rtl-output');
+            } else {
+                outputBox.classList.remove('rtl-output');
+            }
+
+            if (translationsCache[targetLang]) {
+                outputBox.innerHTML = formatOutputText(translationsCache[targetLang]);
+                showToast(`Loaded from cache (${targetLang})`);
+            }
+        }
+
+        function handleProductKeyPress(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                generateWithDeepSeek();
+            }
+        }
+
+        function playCompletionSound() {
+            const sound = document.getElementById('completionSound');
+            if (sound && sound.src && !sound.src.endsWith('.mp3')) {
+                sound.pause();
+                sound.currentTime = 0;
+                sound.play().catch(() => generateWolfHowlAudio());
+            } else {
+                if (sound) {
+                    sound.pause();
+                    sound.currentTime = 0;
+                    sound.play().then(() => {}).catch(e => {
+                        console.log("Synthesized sound activated.", e);
+                        generateWolfHowlAudio();
+                    });
+                } else {
+                    generateWolfHowlAudio();
+                }
+            }
+        }
+
+        function generateWolfHowlAudio() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                
+                const now = ctx.currentTime;
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(650, now + 0.8);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 2.2);
+                osc.frequency.exponentialRampToValueAtTime(250, now + 3.2);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.3, now + 0.4);
+                gain.gain.setValueAtTime(0.3, now + 2.0);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 3.2);
+            } catch (err) {
+                console.log("Web Audio error:", err);
+            }
+        }
+
+        let progressInterval = null;
+
+        function startProgressBar() {
+            const container = document.getElementById('progressContainer');
+            const bar = document.getElementById('progressBar');
+            container.style.display = 'block';
+            bar.style.width = '0%';
+            
+            let width = 0;
+            clearInterval(progressInterval);
+            progressInterval = setInterval(() => {
+                if (width < 90) {
+                    width += Math.floor(Math.random() * 8) + 2;
+                    bar.style.width = width + '%';
+                }
+            }, 200);
+        }
+
+        function finishProgressBar() {
+            const bar = document.getElementById('progressBar');
+            const container = document.getElementById('progressContainer');
+            clearInterval(progressInterval);
+            bar.style.width = '100%';
+            setTimeout(() => {
+                container.style.display = 'none';
+                bar.style.width = '0%';
+            }, 300);
+        }
+
+        function formatOutputText(text) {
+            return text
+                .replace(/^<h2>Title<\/h2>|^## Title/gm, '<span class="green-header">Title</span>')
+                .replace(/^Description$/gm, '<span class="green-header">Description</span>')
+                .replace(/^Features$/gm, '<span class="green-header">Features</span>')
+                .replace(/^Specifications$/gm, '<span class="green-header">Specifications</span>')
+                .replace(/^العنوان$/gm, '<span class="green-header">العنوان</span>')
+                .replace(/^الوصف$/gm, '<span class="green-header">الوصف</span>')
+                .replace(/^الميزات$/gm, '<span class="green-header">الميزات</span>')
+                .replace(/^المواصفات$/gm, '<span class="green-header">المواصفات</span>')
+                .replace(/\*\*Description\*\*/g, '<span class="green-header">Description</span>')
+                .replace(/\*\*Features\*\*/g, '<span class="green-header">Features</span>')
+                .replace(/\*\*Specifications\*\*/g, '<span class="green-header">Specifications</span>')
+                .replace(/\*\*العنوان\*\*/g, '<span class="green-header">العنوان</span>')
+                .replace(/\*\*الوصف\*\*/g, '<span class="green-header">الوصف</span>')
+                .replace(/\*\*الميزات\*\*/g, '<span class="green-header">الميزات</span>')
+                .replace(/\*\*المواصفات\*\*/g, '<span class="green-header">المواصفات</span>');
+        }
+
+        async function fetchAIResponse(userPrompt, systemPrompt = "") {
+            const items = getStoredApiKeys();
+            if (!items || items.length === 0) {
+                throw new Error("No DeepSeek API keys configured. Please add a key via 'DeepSeek API Keys' button.");
+            }
+
+            let lastError = null;
+
+            for (let i = 0; i < items.length; i++) {
+                const itemObj = items[i];
+                const apiKey = itemObj.key || itemObj;
+                let endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+                let modelName = 'deepseek/deepseek-chat';
+
+                if (apiKey.startsWith('sk-0e') || apiKey.length < 50) {
+                    endpoint = 'https://api.deepseek.com/chat/completions';
+                    modelName = 'deepseek-chat';
+                }
+
+                const messages = [];
+                if (systemPrompt) {
+                    messages.push({ role: 'system', content: systemPrompt });
+                }
+                messages.push({ role: 'user', content: userPrompt });
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`,
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Wolf Softwear Listing App'
+                        },
+                        body: JSON.stringify({
+                            model: modelName,
+                            messages: messages,
+                            temperature: 0.1,
+                            top_p: 0.95
+                        }),
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+                    const data = await response.json();
+
+                    if (response.ok && data.choices && data.choices[0]) {
+                        return data.choices[0].message.content;
+                    } else {
+                        lastError = data.error?.message || `API Key #${i + 1} rejected. Switching...`;
+                    }
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    lastError = err.name === 'AbortError' ? `API Key #${i + 1} timed out (>12s). Switching...` : err.message;
+                }
+            }
+
+            throw new Error(lastError || "All API keys failed or timed out.");
+        }
+
+        async function runCustomPrompt() {
+            const customPromptInputEl = document.getElementById('customPromptInput');
+            const customPrompt = customPromptInputEl.value.trim();
+            const includeContent = document.getElementById('includeFilteredContentCheck').checked;
+            const productContent = document.getElementById('productContent').value.trim();
+            const productName = document.getElementById('productInput').value.trim();
+
+            if (!customPrompt) {
+                showToast("Please enter a prompt in the custom box!");
+                return;
+            }
+
+            showToast("Executing DeepSeek custom prompt with auto-failover...");
+            startProgressBar();
+
+            let fullUserPrompt = `[USER PRIORITY INSTRUCTION] :\n${customPrompt}`;
+            if (includeContent && (productContent || productName)) {
+                fullUserPrompt += `\n\nAdditional available context (product: ${productName}):\n${productContent}`;
+            }
+
+            try {
+                const result = await fetchAIResponse(fullUserPrompt, "You are a helpful AI assistant expert in e-commerce and copywriting for Shopify. Prioritize and execute the user's explicit custom instruction above all else.");
+                
+                translationsCache["English"] = result;
+                document.getElementById('outputBox').classList.remove('rtl-output');
+                document.getElementById('outputBox').textContent = result;
+                
+                showToast("Prompt executed successfully!");
+                playCompletionSound();
+
+                customPromptInputEl.value = "";
+            } catch (err) {
+                showToast("API Error: " + err.message);
+            } finally {
+                finishProgressBar();
+            }
+        }
+
+        async function generateWithDeepSeek() {
+            let rawName = document.getElementById('productInput').value.trim();
+            let rawUrl = document.getElementById('productUrl').value.trim();
+            let rawContent = document.getElementById('productContent').value.trim();
+
+            showToast("Generating product description for Shopify...");
+            startProgressBar();
+
+            if (rawUrl && (!rawContent || rawContent.startsWith("Loading"))) {
+                document.getElementById('outputBox').textContent = "Fetching content from URL...";
+                const scrapedText = await fetchWebpageContent(rawUrl);
+                if (scrapedText) {
+                    const filtered = await filterAndAnalyzeWithDeepSeek(scrapedText, rawName);
+                    rawContent = filtered.filtered_content || scrapedText;
+                    if (filtered.exact_title && !rawName) rawName = filtered.exact_title;
+                    document.getElementById('productContent').value = rawContent;
+                    document.getElementById('productInput').value = rawName;
+                }
+            }
+
+            if (!rawContent || rawContent.startsWith("Loading")) {
+                await autoPasteClipboard();
+                rawContent = document.getElementById('productContent').value.trim();
+            }
+
+            if (!rawName && rawUrl) {
+                handleUrlChange();
+                rawName = document.getElementById('productInput').value.trim();
+            }
+            if (!rawName && rawContent) {
+                rawName = rawContent.split('\n')[0].substring(0, 40);
+                document.getElementById('productInput').value = rawName;
+            }
+
+            if (!rawName && !rawContent && !rawUrl) {
+                finishProgressBar();
+                showToast("Please enter at least a product name, URL, or image!");
+                return;
+            }
+
+            translationsCache = {};
+
+            document.getElementById('outputBox').textContent = "Applying DeepSeek instructions with auto-failover...";
+
+            const systemPrompt = `You are a strict, highly accurate e-commerce copywriter fluent in English, specialized in preparing commercial listings optimized for online storefronts like Shopify. Output the final product listing directly IN ENGLISH. Strictly follow the provided formatting rules and structure. Ensure that relevant context-matched emojis are used for each feature.`;
+
+            let productContext = `PRODUCT NAME: ${rawName || 'Product'}`;
+            
+            if (rawContent) {
+                productContext += `\n\nEXACT PRODUCT SPECIFICATIONS AND FILTERED SOURCE TEXT:\n"""\n${rawContent}\n"""\n
+STRICT INSTRUCTION: Base ALL features, description details, and technical specifications EXCLUSIVELY on the text provided above.`;
+            }
+
+            if (rawUrl) {
+                productContext += `\n\nREFERENCE URL: ${rawUrl}`;
+            }
+
+            const promptText = `Generate a standard detailed product listing translated fully into ENGLISH strictly corresponding to the target product details provided below:
+
+${productContext}
+
+Follow this EXACT structure perfectly (with English section headers):
+
+<h2>Title</h2>
+Brand - Model (concise, commercial, attractive for storefronts like Shopify, maximum 5-6 words after the brand)
+
+**Description**
+Large header summarizing the product (one line)
+
+(Short product description, maximum 3 to 3.5 lines, concise, emphasizing elegance, protection, and premium design)
+
+(Emoji) Short feature name 1
+(Emoji) Short feature name 2
+(Emoji) Short feature name 3
+(Emoji) Short feature name 4
+(Emoji) Short feature name 5
+
+**Features**
+
+(Emoji) Feature Name – Short description of the feature
+(Emoji) Feature Name – Short description of the feature
+(Emoji) Feature Name – Short description of the feature
+(Emoji) Feature Name – Short description of the feature
+(Emoji) Feature Name – Short description of the feature
+
+**Specifications**
+
+- Detailed technical specification 1
+- Detailed technical specification 2
+- Detailed technical specification 3
+- Detailed technical specification 4
+- Detailed technical specification 5
+- Detailed technical specification 6
+- Detailed technical specification 7
+- Detailed technical specification 8
+
+CRITICAL RULES:
+1. The text MUST BE IN ENGLISH.
+2. Main section headers MUST stay formatted as "<h2>Title</h2>", "**Description**", "**Features**", and "**Specifications**".
+3. Under "Description", DO NOT use asterisks or bolding (no **). The summary title line should NOT have asterisks/bold markdown.
+4. Under "Features", DO NOT use asterisks or bolding for feature names (no **). Each line must strictly be: (Emoji) Feature Name – Short description.
+5. Use contextual and highly relevant emojis for each feature line.
+6. All 8 technical specifications MUST start with a dash (-).
+7. Skip a blank line between each main section.`;
+
+            try {
+                const result = await fetchAIResponse(promptText, systemPrompt);
+                
+                translationsCache["English"] = result;
+
+                document.getElementById('targetLanguage').value = "English";
+                document.getElementById('outputBox').classList.remove('rtl-output');
+                document.getElementById('outputBox').innerHTML = formatOutputText(result);
+
+                showToast("Product listing generated successfully in English!");
+                playCompletionSound();
+            } catch (err) {
+                showToast("API Error: " + err.message);
+            } finally {
+                finishProgressBar();
+            }
+        }
+
+        async function translateWithSelectedAI() {
+            const currentBox = document.getElementById('outputBox');
+            const currentText = currentBox.innerText || currentBox.textContent;
+            
+            if (!currentText || currentText.includes("Product template or custom prompt response")) {
+                showToast("Generate content first!");
+                return;
+            }
+
+            const targetLang = document.getElementById('targetLanguage').value;
+
+            if (translationsCache[targetLang]) {
+                document.getElementById('outputBox').innerHTML = formatOutputText(translationsCache[targetLang]);
+                if (targetLang === 'Arabic') {
+                    currentBox.classList.add('rtl-output');
+                } else {
+                    currentBox.classList.remove('rtl-output');
+                }
+                showToast(`Loaded from cache (${targetLang})`);
+                return;
+            }
+
+            const baseTextToTranslate = translationsCache["English"] || currentText;
+
+            showToast(`Translating to ${targetLang}...`);
+            startProgressBar();
+
+            const systemPrompt = `You are a professional e-commerce translator specialized in adapting product titles and descriptions for regional platforms (like Shopify in Arabic). Output ONLY the translated text. Do not add intro text or conversational filler.`;
+
+            const promptText = `Translate the content of the following product description into ${targetLang}. For Arabic, craft catchy and professional e-commerce marketing titles and descriptions (highlighting luxury, protection, and premium build).
+
+STRICT RULES:
+1. Retain section titles in ${targetLang === 'Arabic' ? 'Arabic (<h2>العنوان</h2>, **الوصف**, **الميزات**, **المواصفات**)' : 'English (<h2>Title</h2>, **Description**, **Features**, **Specifications**)'}.
+2. Preserve all emojis, line breaks, and dash lists (-).
+3. Do not add asterisks (**) or bolding inside Features or Description content.
+4. Do not alter the structure or remove emojis.
+
+Text to translate:
+${baseTextToTranslate}`;
+
+            try {
+                const result = await fetchAIResponse(promptText, systemPrompt);
+                
+                translationsCache[targetLang] = result;
+
+                if (targetLang === 'Arabic') {
+                    currentBox.classList.add('rtl-output');
+                } else {
+                    currentBox.classList.remove('rtl-output');
+                }
+
+                document.getElementById('outputBox').innerHTML = formatOutputText(result);
+                showToast(`Translated to ${targetLang} and saved!`);
+            } catch (err) {
+                showToast("Translation error: " + err.message);
+            } finally {
+                finishProgressBar();
+            }
+        }
+
+        function clearInput() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+            document.getElementById('productInput').value = "";
+            document.getElementById('productUrl').value = "";
+            document.getElementById('productContent').value = "";
+            document.getElementById('customPromptInput').value = "";
+            document.getElementById('imageInput').value = "";
+            document.getElementById('imagePreview').style.display = "none";
+            document.getElementById('dropzoneText').textContent = "Upload image for OCR & Search";
+            
+            const outputBox = document.getElementById('outputBox');
+            outputBox.textContent = "Product template or custom prompt response will appear here...";
+            outputBox.classList.remove('rtl-output');
+            
+            document.getElementById('resizeImageInput').value = "";
+            document.getElementById('resizeImagePreview').style.display = "none";
+            document.getElementById('resizeDropText').style.display = 'block';
+            document.getElementById('resizeWidth').value = "1000";
+            document.getElementById('resizeHeight').value = "1000";
+            document.getElementById('enhanceQualityCheck').checked = true;
+            originalResizeImage = null;
+            closeLivePreviewModal();
+
+            translationsCache = {};
+            showToast("Reset completed");
+        }
+
+        function copyOutput() {
+            const outputBox = document.getElementById('outputBox');
+            const textToCopy = outputBox.innerText || outputBox.textContent;
+            
+            if (!textToCopy || textToCopy.includes("Product template or custom prompt response")) {
+                showToast("Nothing to copy!");
+                return;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast("Copied to clipboard!");
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = message;
+            toast.style.display = 'flex';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+    </script>
+</body>
+</html>
